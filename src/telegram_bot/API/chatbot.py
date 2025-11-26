@@ -91,7 +91,7 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
                     print(f"🎤 Audio transcrito: {transcribed_text}")
                     if transcribed_text:
                         send_telegram_message(chat_id, f"Tu pregunta: *{transcribed_text}*", {"parse_mode": "Markdown"})
-                        background_tasks.add_task(handle_message, chat_id, transcribed_text, name)
+                        background_tasks.add_task(_handle_message, chat_id, transcribed_text, name)
                     else:
                         send_telegram_message(chat_id, "No pude transcribir el audio. ¿Podrías repetirlo?")
                 except Exception as e:
