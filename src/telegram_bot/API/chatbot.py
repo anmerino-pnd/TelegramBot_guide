@@ -1,3 +1,4 @@
+import os
 import rich
 import requests
 import tempfile
