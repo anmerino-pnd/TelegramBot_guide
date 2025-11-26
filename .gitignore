@@ -1,0 +1,11 @@
+.env
+.venv/
+
+src/telegram_bot.egg-info/
+
+__pycache__/
+__init__.py
+*.pyc
+*.pyo
+
+logs/*
