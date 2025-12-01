@@ -11,6 +11,5 @@ ollama = ollama_api.Client(
     host="https://ollama.com", 
     headers={'Authorization': 'Bearer ' + ollama_api_key}) if ollama_api_key else ollama_api.Client()
 
-
 telegram_token = os.getenv("TELEGRAM_TOKEN_DEV")
 telegram_api_url = f"https://api.telegram.org/bot{telegram_token}"

@@ -11,7 +11,7 @@ from telegram_bot.settings.variables import ollama
 class Agent(LLM):
     def __init__(self):
         self.model = "gemma3:4b" # gemma3 runs in local
-        #if you want to run cloude models then you can search for models here https://ollama.com/search?c=cloud 
+        # if you want to run cloude models then you can search for models here https://ollama.com/search?c=cloud 
 
     def answer(self, question: Question) :
         response_tokens = []
@@ -36,7 +36,6 @@ class Agent(LLM):
 
     
     def make_metadata(self, response: GenerateResponse, duration: float) -> CallMetadata:
-            """Crea los metadatos para una respuesta del modelo."""
             input_tokens = response.prompt_eval_count
             output_tokens = response.eval_count
             return call_metadata(

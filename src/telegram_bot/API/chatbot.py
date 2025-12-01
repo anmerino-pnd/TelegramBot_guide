@@ -17,7 +17,7 @@ def _load_whitelist(filepath: str = WHITELIST_PATH) -> set[int]:
         with open(filepath, "r") as f:
             return set(int(line.strip()) for line in f if line.strip().isdigit())
     except FileNotFoundError:
-        print("Archivo de whitelist no encontrado.")
+        print("Whitelist not found.")
         return set()
     
 def _get_file_path(file_id: str) -> str:
@@ -40,7 +40,7 @@ def _transcribe_audio(audio_bytes: bytes, filename: str) -> str:
         return transcription_text.strip()
 
     except Exception as e:
-        print(f"Error en transcripción local: {e}")
+        print(f"Error in local transcription: {e}")
         raise e
 
 # def _transcribe_audio(audio_bytes: bytes, filename: str) -> str:
@@ -51,46 +51,46 @@ def _transcribe_audio(audio_bytes: bytes, filename: str) -> str:
 #     response.raise_for_status()
 #     return response.json()["text"]
     
-async def _handle_message(chat_id: int, text: str, name: str):
-    """Procesa una pregunta, obtiene una respuesta y la envía a Telegram."""
+def _handle_message(chat_id: int, text: str, name: str):
     try:
         result = agent.answer(
             question=text
         )
 
         send_telegram_message(chat_id, result)
-        pass
+        return {"status": "ok"}
     except Exception as e:
-        print(f"❌ Error al procesar mensaje para {chat_id}: {e}")
-        send_telegram_message(chat_id, "Ocurrió un error procesando tu mensaje.")
+        print(f" Error while processing the message for {chat_id}: {e}")
+        send_telegram_message(chat_id, "There was an error processing your message.")
+        return {"status": "error", "message": f"e"}
 
 
-async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
+def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
     try:
-        data = await request.json()
-        print("📥 Payload recibido:")
+        data = request.json()
+        print("📥 Payload:")
         rich.print(data)
 
         if "message" in data:
             message = data["message"]
             chat_id = message["chat"]["id"]
-            name = f"{message['from'].get('first_name', '')} {message['from'].get('last_name', '')}".strip() or "Usuario"
+            name = f"{message['from'].get('first_name', '')} {message['from'].get('last_name', '')}".strip() or "user"
 
             whitelist = _load_whitelist()
             if chat_id not in whitelist:
-                print(f"🚫 chat_id {chat_id} no autorizado")
-                send_telegram_message(chat_id, "❌ No estás autorizado para usar este bot.")
+                print(f"Chat_id {chat_id} unauthorized")
+                send_telegram_message(chat_id, " You are not allowed to use this chatbot.")
                 return {"status": "unauthorized"}
 
             if "text" in message:
                 text = message["text"]
 
-                send_telegram_message(chat_id, "Estoy procesando tu mensaje, dame un momento por favor...")
+                send_telegram_message(chat_id, "I'm processing your message...")
 
                 background_tasks.add_task(_handle_message, chat_id, text, name)
             
             elif "voice" in message:
-                send_telegram_message(chat_id, "Recibiendo audio y transcribiendo...")
+                send_telegram_message(chat_id, "Transcribing your audio...")
                 temp_file_path = None
                 try:
                     file_path = _get_file_path(message["voice"]["file_id"])
@@ -101,21 +101,22 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
                     transcribed_text = _transcribe_audio(audio_bytes, os.path.basename(temp_file_path))
                     
                     if transcribed_text:
-                        send_telegram_message(chat_id, f"Audio transcrito: {transcribed_text}")
+                        send_telegram_message(chat_id, f"Transcribed audio: {transcribed_text}")
                         background_tasks.add_task(_handle_message, chat_id, transcribed_text, name)
 
                     else:
-                        send_telegram_message(chat_id, "No pude transcribir el audio. ¿Podrías repetirlo?")
+                        send_telegram_message(chat_id, "I couldn't transcribe your audio. Can you repeat it?")
                 except Exception as e:
-                    print(f"Error al procesar audio: {e}")
-                    send_telegram_message(chat_id, f"Ocurrió un error al procesar tu audio.")
+                    print(f"Error processing the audio: {e}")
+                    send_telegram_message(chat_id, f"Error while processing your audio.\n{e}")
                 finally:
                     if temp_file_path and os.path.exists(temp_file_path):
                         os.unlink(temp_file_path)
             else:
-                send_telegram_message(chat_id, "Actualmente solo puedo procesar mensajes de texto y voz.")
+                send_telegram_message(chat_id, "Only text and voice messages can be answered.")
             return {"status": "ok"}
 
     except Exception as e:
-        print(f"Error fatal en webhook de Telegram: {e}")
+        print(f"Telegram webhook error: {e}")
+        send_telegram_message(chat_id, f"Telegram webhook error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

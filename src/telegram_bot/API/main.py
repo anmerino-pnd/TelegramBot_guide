@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from telegram_bot.settings.variables import telegram_api_url
+from telegram_bot.API.chatbot import telegram_webhook
+from telegram_bot.telegram.functions import send_telegram_message
+from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
 
 app = FastAPI()
 
@@ -11,4 +13,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.post("/webhook")
+def telegram_webhook_handler(request: Request, background_tasks: BackgroundTasks):
+    try:
+        telegram_webhook(request, background_tasks)
+        return {"status": "ok"}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(f"Error en webhook: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error procesando webhook: {str(e)}")
 
