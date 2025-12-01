@@ -1,6 +1,7 @@
 import io
 import os
 import rich
+import whisper
 import requests
 import tempfile
 from faster_whisper import WhisperModel
@@ -9,6 +10,8 @@ from telegram_bot.settings.paths import WHITELIST_PATH
 from fastapi import HTTPException, Request, BackgroundTasks
 from telegram_bot.settings.variables import telegram_api_url
 from telegram_bot.telegram.functions import send_telegram_message, download_file
+
+audio_model = whisper.load_model('base') # tiny, base, small, medium, large
 
 agent = Agent()
 
@@ -28,28 +31,25 @@ def _get_file_path(file_id: str) -> str:
 model_size = "small"
 model = WhisperModel(model_size, device="cuda", compute_type="float16")
 
-def _transcribe_audio(audio_bytes: bytes, filename: str) -> str:
+def _transcribe_audio(audio_bytes: bytes) -> str:
+    temp_path = None
     try:
-        audio_stream = io.BytesIO(audio_bytes)
-        segments, _ = model.transcribe(audio_stream, beam_size=5, language="es")
+        with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as temp_file:
+            temp_file.write(audio_bytes)
+            temp_path = temp_file.name
+        segments, _ = model.transcribe(
+            temp_path, 
+            beam_size=5, 
+            language="es",
+            vad_filter=True)
 
-        transcription_text = ""
-        for segment in segments:
-            transcription_text += segment.text + " "
+        transcription_text = " ".join(segment.text.strip() for segment in segments)
 
-        return transcription_text.strip()
+        return transcription_text
 
     except Exception as e:
         print(f"Error in local transcription: {e}")
         raise e
-
-# def _transcribe_audio(audio_bytes: bytes, filename: str) -> str:
-#     headers = {"Authorization": f"Bearer {openai_api_key}"}
-#     files = {"file": (filename, audio_bytes, "audio/ogg")}
-#     data = {"model": "whisper-1"}
-#     response = requests.post(OPENAI_TRANSCRIPTION_URL, headers=headers, files=files, data=data)
-#     response.raise_for_status()
-#     return response.json()["text"]
     
 def _handle_message(chat_id: int, text: str, name: str):
     try:
@@ -95,10 +95,7 @@ def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
                 try:
                     file_path = _get_file_path(message["voice"]["file_id"])
                     audio_bytes = download_file(file_path)
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".ogg") as temp_audio_file:
-                        temp_audio_file.write(audio_bytes)
-                        temp_file_path = temp_audio_file.name
-                    transcribed_text = _transcribe_audio(audio_bytes, os.path.basename(temp_file_path))
+                    transcribed_text = _transcribe_audio(audio_bytes)
                     
                     if transcribed_text:
                         send_telegram_message(chat_id, f"Transcribed audio: {transcribed_text}")
