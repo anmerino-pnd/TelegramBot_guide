@@ -51,7 +51,7 @@ def _transcribe_audio(audio_bytes: bytes) -> str:
         print(f"Error in local transcription: {e}")
         raise e
     
-def _handle_message(chat_id: int, text: str, name: str):
+def _handle_message(chat_id: int, text: str):
     try:
         result = agent.answer(
             question=text
@@ -87,7 +87,7 @@ def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
 
                 send_telegram_message(chat_id, "I'm processing your message...")
 
-                background_tasks.add_task(_handle_message, chat_id, text, name)
+                background_tasks.add_task(_handle_message, chat_id, text)
             
             elif "voice" in message:
                 send_telegram_message(chat_id, "Transcribing your audio...")
@@ -99,7 +99,7 @@ def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
                     
                     if transcribed_text:
                         send_telegram_message(chat_id, f"Transcribed audio: {transcribed_text}")
-                        background_tasks.add_task(_handle_message, chat_id, transcribed_text, name)
+                        background_tasks.add_task(_handle_message, chat_id, transcribed_text)
 
                     else:
                         send_telegram_message(chat_id, "I couldn't transcribe your audio. Can you repeat it?")
