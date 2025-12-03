@@ -53,11 +53,11 @@ def _transcribe_audio(audio_bytes: bytes) -> str:
     
 def _handle_message(chat_id: int, text: str):
     try:
-        result = agent.answer(
+        response, metadata = agent.answer(
             question=text
         )
 
-        send_telegram_message(chat_id, result)
+        send_telegram_message(chat_id, f"{response}\n\n{metadata}")
         return {"status": "ok"}
     except Exception as e:
         print(f" Error while processing the message for {chat_id}: {e}")
@@ -65,16 +65,16 @@ def _handle_message(chat_id: int, text: str):
         return {"status": "error", "message": f"e"}
 
 
-def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
+async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
+    chat_id = None
     try:
-        data = request.json()
+        data = await request.json()
         print("📥 Payload:")
         rich.print(data)
 
         if "message" in data:
             message = data["message"]
             chat_id = message["chat"]["id"]
-            name = f"{message['from'].get('first_name', '')} {message['from'].get('last_name', '')}".strip() or "user"
 
             whitelist = _load_whitelist()
             if chat_id not in whitelist:

@@ -14,7 +14,7 @@ class Agent(LLM):
         # if you want to run cloude models then you can search for models here https://ollama.com/search?c=cloud 
 
     def answer(self, question: Question) :
-        response_tokens = []
+
 
         start_time = time.perf_counter()
         result = ollama.generate(
@@ -27,12 +27,12 @@ class Agent(LLM):
         duration = end_time - start_time
 
         if hasattr(result, "response"):
-            tokens = result.response
-            response_tokens.append(tokens)
+            response = result.response
+
 
         metadata = self.make_metadata(result, duration).model_dump()
         
-        return result, metadata
+        return response, metadata
 
     
     def make_metadata(self, response: GenerateResponse, duration: float) -> CallMetadata:

@@ -1,6 +1,8 @@
 .env
 .venv/
 
+whitelist.txt
+
 src/telegram_bot.egg-info/
 
 __pycache__/

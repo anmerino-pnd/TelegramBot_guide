@@ -10,3 +10,7 @@ def find_project_root(start_path: Path, marker_file: str = "pyproject.toml") -> 
 BASE_DIR = find_project_root(Path(__file__))
 
 WHITELIST_PATH = BASE_DIR / "whitelist.txt"
+
+for file in [
+    WHITELIST_PATH]:
+    file.touch(exist_ok=True)
