@@ -29,7 +29,7 @@ def _get_file_path(file_id: str) -> str:
     return response.json()["result"]["file_path"]
 
 model_size = "small"
-model = WhisperModel(model_size, device="cuda", compute_type="float16")
+model = WhisperModel(model_size, device="cpu")
 
 def _transcribe_audio(audio_bytes: bytes) -> str:
     temp_path = None
