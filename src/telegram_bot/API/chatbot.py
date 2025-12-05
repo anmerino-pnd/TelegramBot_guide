@@ -1,6 +1,6 @@
-import io
 import os
 import rich
+import json
 import whisper
 import requests
 import tempfile
@@ -57,7 +57,10 @@ def _handle_message(chat_id: int, text: str):
             question=text
         )
 
-        send_telegram_message(chat_id, f"{response}\n\n{metadata}")
+        send_telegram_message(
+            chat_id,
+            f"{response}\n\nMetadata:\n{json.dumps(metadata, indent=2)}"
+        )
         return {"status": "ok"}
     except Exception as e:
         print(f" Error while processing the message for {chat_id}: {e}")
@@ -96,7 +99,6 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
                     file_path = _get_file_path(message["voice"]["file_id"])
                     audio_bytes = download_file(file_path)
                     transcribed_text = _transcribe_audio(audio_bytes)
-                    
                     if transcribed_text:
                         send_telegram_message(chat_id, f"Transcribed audio: {transcribed_text}")
                         background_tasks.add_task(_handle_message, chat_id, transcribed_text)
